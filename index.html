@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mental Health & Habit Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Mental Health & Habit Tracker</h1>
+
+    <section class="mood-section">
+      <h2>Daily Mood & Journal</h2>
+      <form id="moodForm">
+        <label for="mood">How are you feeling today?</label>
+        <select id="mood" required>
+          <option value="">Select Mood</option>
+          <option value="Happy">😊 Happy</option>
+          <option value="Neutral">😐 Neutral</option>
+          <option value="Sad">😢 Sad</option>
+          <option value="Stressed">😰 Stressed</option>
+        </select>
+
+        <label for="journal">Journal Entry:</label>
+        <textarea id="journal" rows="4" placeholder="Write your thoughts..."></textarea>
+
+        <button type="submit">Save Entry</button>
+      </form>
+    </section>
+
+    <section class="habit-section">
+      <h2>Daily Habit Tracker</h2>
+      <input type="text" id="habitInput" placeholder="Add new habit..." />
+      <button onclick="addHabit()">Add Habit</button>
+      <ul id="habitList"></ul>
+    </section>
+
+    <section class="log-section">
+      <h2>Journal Log</h2>
+      <pre id="log"></pre>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
