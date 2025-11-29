@@ -9,183 +9,195 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1><i class="fas fa-brain" aria-hidden="true"></i> <span>Mindful Moments</span></h1>
-      <div class="header-controls">
-        <button id="exportBtn" class="btn-secondary btn-small" title="Export your data">
-          <i class="fas fa-file-export" aria-hidden="true"></i>
-          <span class="sr-only">Export data</span>
-        </button>
-        <input type="file" id="importFile" accept=".json" style="display: none;" />
-        <button id="importBtn" class="btn-secondary btn-small" title="Import data">
-          <i class="fas fa-file-import" aria-hidden="true"></i>
-          <span class="sr-only">Import data</span>
-        </button>
-        <button id="themeToggle" class="theme-toggle" aria-pressed="false" title="Toggle dark mode">
-          <i class="fas fa-moon" aria-hidden="true"></i>
-          <span class="sr-only">Toggle dark mode</span>
-        </button>
-      </div>
-    </header>
+  <div class="app-wrapper">
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <h1><i class="fas fa-brain" aria-hidden="true"></i> <span>Mindful Moments</span></h1>
+          <div class="header-controls">
+            <button id="exportBtn" class="btn-secondary btn-small" title="Export your data">
+              <i class="fas fa-file-export" aria-hidden="true"></i>
+              <span class="sr-only">Export data</span>
+            </button>
+            <input type="file" id="importFile" accept=".json" style="display: none;" />
+            <button id="importBtn" class="btn-secondary btn-small" title="Import data">
+              <i class="fas fa-file-import" aria-hidden="true"></i>
+              <span class="sr-only">Import data</span>
+            </button>
+            <button id="themeToggle" class="theme-toggle" aria-pressed="false" title="Toggle dark mode">
+              <i class="fas fa-moon" aria-hidden="true"></i>
+              <span class="sr-only">Toggle dark mode</span>
+            </button>
+          </div>
+        </div>
+      </header>
 
-    <main>
-      <section class="section mood-section" aria-labelledby="mood-heading">
-        <h2 id="mood-heading"><i class="fas fa-heart" aria-hidden="true"></i> Daily Mood & Journal</h2>
-        <form id="moodForm" novalidate>
-          <div class="form-group">
-            <label for="mood">How are you feeling today?</label>
-            <div class="mood-selector" id="moodSelector">
-              <div class="mood-option" data-value="Happy">
-                <span class="mood-emoji">😊</span>
-                <span class="mood-label">Happy</span>
+      <main>
+        <div class="main-grid">
+          <section class="section mood-section" aria-labelledby="mood-heading">
+            <h2 id="mood-heading"><i class="fas fa-heart" aria-hidden="true"></i> Daily Mood & Journal</h2>
+            <form id="moodForm" novalidate>
+              <div class="form-group">
+                <label for="mood">How are you feeling today?</label>
+                <div class="mood-selector" id="moodSelector">
+                  <div class="mood-option" data-value="Happy">
+                    <span class="mood-emoji">😊</span>
+                    <span class="mood-label">Happy</span>
+                  </div>
+                  <div class="mood-option" data-value="Neutral">
+                    <span class="mood-emoji">😐</span>
+                    <span class="mood-label">Neutral</span>
+                  </div>
+                  <div class="mood-option" data-value="Sad">
+                    <span class="mood-emoji">😢</span>
+                    <span class="mood-label">Sad</span>
+                  </div>
+                  <div class="mood-option" data-value="Stressed">
+                    <span class="mood-emoji">😰</span>
+                    <span class="mood-label">Stressed</span>
+                  </div>
+                  <div class="mood-option" data-value="Anxious">
+                    <span class="mood-emoji">😥</span>
+                    <span class="mood-label">Anxious</span>
+                  </div>
+                  <div class="mood-option" data-value="Excited">
+                    <span class="mood-emoji">🤩</span>
+                    <span class="mood-label">Excited</span>
+                  </div>
+                  <div class="mood-option" data-value="Grateful">
+                    <span class="mood-emoji">🙏</span>
+                    <span class="mood-label">Grateful</span>
+                  </div>
+                </div>
+                <select id="mood" required aria-describedby="mood-error" style="display: none;">
+                  <option value="">Select Mood</option>
+                  <option value="Happy">Happy</option>
+                  <option value="Neutral">Neutral</option>
+                  <option value="Sad">Sad</option>
+                  <option value="Stressed">Stressed</option>
+                  <option value="Anxious">Anxious</option>
+                  <option value="Excited">Excited</option>
+                  <option value="Grateful">Grateful</option>
+                </select>
+                <div id="mood-error" class="error-message" role="alert" aria-live="polite"></div>
               </div>
-              <div class="mood-option" data-value="Neutral">
-                <span class="mood-emoji">😐</span>
-                <span class="mood-label">Neutral</span>
+
+              <div class="form-group">
+                <label for="journal">Journal Entry:</label>
+                <textarea id="journal" rows="4" placeholder="Write your thoughts, feelings, or anything you're grateful for today..." aria-describedby="journal-help"></textarea>
+                <div id="journal-help" class="help-text">Your journal is private and only stored on your device.</div>
               </div>
-              <div class="mood-option" data-value="Sad">
-                <span class="mood-emoji">😢</span>
-                <span class="mood-label">Sad</span>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary" id="submitBtn">
+                  <span class="btn-content">
+                    <i class="fas fa-save" aria-hidden="true"></i> Save Entry
+                  </span>
+                  <span class="btn-loading" aria-hidden="true">
+                    <span class="spinner" aria-hidden="true"></span> Saving...
+                  </span>
+                </button>
               </div>
-              <div class="mood-option" data-value="Stressed">
-                <span class="mood-emoji">😰</span>
-                <span class="mood-label">Stressed</span>
-              </div>
-              <div class="mood-option" data-value="Anxious">
-                <span class="mood-emoji">😥</span>
-                <span class="mood-label">Anxious</span>
-              </div>
-              <div class="mood-option" data-value="Excited">
-                <span class="mood-emoji">🤩</span>
-                <span class="mood-label">Excited</span>
-              </div>
-              <div class="mood-option" data-value="Grateful">
-                <span class="mood-emoji">🙏</span>
-                <span class="mood-label">Grateful</span>
-              </div>
+            </form>
+          </section>
+
+          <section class="section habit-section" aria-labelledby="habits-heading">
+            <h2 id="habits-heading"><i class="fas fa-tasks" aria-hidden="true"></i> Daily Habit Tracker</h2>
+            <div class="input-group">
+              <input type="text" id="habitInput" placeholder="Add new habit (e.g., Meditation, Exercise, Reading...)" aria-label="New habit name" />
+              <button id="addHabitBtn" class="btn-primary">
+                <span class="btn-content">
+                  <i class="fas fa-plus" aria-hidden="true"></i> Add Habit
+                </span>
+                <span class="btn-loading" aria-hidden="true">
+                  <span class="spinner" aria-hidden="true"></span> Adding...
+                </span>
+              </button>
             </div>
-            <select id="mood" required aria-describedby="mood-error" style="display: none;">
-              <option value="">Select Mood</option>
-              <option value="Happy">Happy</option>
-              <option value="Neutral">Neutral</option>
-              <option value="Sad">Sad</option>
-              <option value="Stressed">Stressed</option>
-              <option value="Anxious">Anxious</option>
-              <option value="Excited">Excited</option>
-              <option value="Grateful">Grateful</option>
-            </select>
-            <div id="mood-error" class="error-message" role="alert" aria-live="polite"></div>
-          </div>
+            <div class="filter-controls">
+              <label for="habitFilter" class="sr-only">Filter habits</label>
+              <select id="habitFilter" aria-label="Filter habits by status">
+                <option value="all">All Habits</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <ul id="habitList" role="list" aria-label="List of habits">
+              <!-- Habits will be populated by JavaScript -->
+            </ul>
+          </section>
 
-          <div class="form-group">
-            <label for="journal">Journal Entry:</label>
-            <textarea id="journal" rows="4" placeholder="Write your thoughts, feelings, or anything you're grateful for today..." aria-describedby="journal-help"></textarea>
-            <div id="journal-help" class="help-text">Your journal is private and only stored on your device.</div>
-          </div>
+          <section class="section log-section" aria-labelledby="log-heading">
+            <h2 id="log-heading"><i class="fas fa-book" aria-hidden="true"></i> Journal Log</h2>
+            
+            <div class="log-controls">
+              <label for="moodFilter" class="sr-only">Filter by mood</label>
+              <select id="moodFilter" aria-label="Filter journal entries by mood">
+                <option value="all">All Moods</option>
+                <option value="Happy">😊 Happy</option>
+                <option value="Neutral">😐 Neutral</option>
+                <option value="Sad">😢 Sad</option>
+                <option value="Stressed">😰 Stressed</option>
+                <option value="Anxious">😥 Anxious</option>
+                <option value="Excited">🤩 Excited</option>
+                <option value="Grateful">🙏 Grateful</option>
+              </select>
+              
+              <label for="sortOrder" class="sr-only">Sort entries</label>
+              <select id="sortOrder" aria-label="Sort journal entries">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+            
+            <div id="log" role="log" aria-live="polite" aria-label="Journal entries">
+              <!-- Journal entries will be populated by JavaScript -->
+            </div>
+            
+            <div class="section-actions">
+              <button id="clearDataBtn" class="btn-danger btn-small">
+                <i class="fas fa-trash" aria-hidden="true"></i> Clear All Data
+              </button>
+            </div>
+          </section>
 
-          <button type="submit" class="btn-primary" id="submitBtn">
-            <span class="btn-content">
-              <i class="fas fa-save" aria-hidden="true"></i> Save Entry
-            </span>
-            <span class="btn-loading" aria-hidden="true">
-              <span class="spinner" aria-hidden="true"></span> Saving...
-            </span>
-          </button>
-        </form>
-      </section>
+          <section class="stats-section">
+            <div class="stat-card">
+              <div class="progress-ring">
+                <svg class="progress-ring-circle" width="120" height="120" aria-labelledby="completion-label">
+                  <title id="completion-label">Habit Completion Progress</title>
+                  <circle class="progress-ring-bg" cx="60" cy="60" r="54" stroke-width="8"></circle>
+                  <circle class="progress-ring-fill" cx="60" cy="60" r="54" stroke-width="8"></circle>
+                </svg>
+                <div class="progress-text" id="completionRate">0%</div>
+              </div>
+              <div class="stat-label">Habit Completion</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-value" id="totalEntries">0</div>
+              <div class="stat-label">Total Entries</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-value" id="currentStreak">0</div>
+              <div class="stat-label">Day Streak</div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-value" id="moodAverage">-</div>
+              <div class="stat-label">Avg. Mood</div>
+            </div>
+          </section>
+        </div>
+      </main>
 
-      <section class="section habit-section" aria-labelledby="habits-heading">
-        <h2 id="habits-heading"><i class="fas fa-tasks" aria-hidden="true"></i> Daily Habit Tracker</h2>
-        <div class="input-group">
-          <input type="text" id="habitInput" placeholder="Add new habit (e.g., Meditation, Exercise, Reading...)" aria-label="New habit name" />
-          <button id="addHabitBtn" class="btn-primary">
-            <span class="btn-content">
-              <i class="fas fa-plus" aria-hidden="true"></i> Add Habit
-            </span>
-            <span class="btn-loading" aria-hidden="true">
-              <span class="spinner" aria-hidden="true"></span> Adding...
-            </span>
-          </button>
+      <footer>
+        <div class="footer-content">
+          <p>Mindful Moments &copy; <span id="currentYear"></span> | Track your mental wellness journey</p>
         </div>
-        <div class="filter-controls">
-          <label for="habitFilter" class="sr-only">Filter habits</label>
-          <select id="habitFilter" aria-label="Filter habits by status">
-            <option value="all">All Habits</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-        <ul id="habitList" role="list" aria-label="List of habits">
-          <!-- Habits will be populated by JavaScript -->
-        </ul>
-      </section>
-
-      <section class="section log-section" aria-labelledby="log-heading">
-        <h2 id="log-heading"><i class="fas fa-book" aria-hidden="true"></i> Journal Log</h2>
-        
-        <div class="log-controls">
-          <label for="moodFilter" class="sr-only">Filter by mood</label>
-          <select id="moodFilter" aria-label="Filter journal entries by mood">
-            <option value="all">All Moods</option>
-            <option value="Happy">😊 Happy</option>
-            <option value="Neutral">😐 Neutral</option>
-            <option value="Sad">😢 Sad</option>
-            <option value="Stressed">😰 Stressed</option>
-            <option value="Anxious">😥 Anxious</option>
-            <option value="Excited">🤩 Excited</option>
-            <option value="Grateful">🙏 Grateful</option>
-          </select>
-          
-          <label for="sortOrder" class="sr-only">Sort entries</label>
-          <select id="sortOrder" aria-label="Sort journal entries">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-        </div>
-        
-        <div id="log" role="log" aria-live="polite" aria-label="Journal entries">
-          <!-- Journal entries will be populated by JavaScript -->
-        </div>
-        
-        <button id="clearDataBtn" class="btn-danger btn-small">
-          <i class="fas fa-trash" aria-hidden="true"></i> Clear All Data
-        </button>
-      </section>
-
-      <section class="stats-section">
-        <div class="stat-card">
-          <div class="progress-ring">
-            <svg class="progress-ring-circle" width="120" height="120" aria-labelledby="completion-label">
-              <title id="completion-label">Habit Completion Progress</title>
-              <circle class="progress-ring-bg" cx="60" cy="60" r="54" stroke-width="8"></circle>
-              <circle class="progress-ring-fill" cx="60" cy="60" r="54" stroke-width="8"></circle>
-            </svg>
-            <div class="progress-text" id="completionRate">0%</div>
-          </div>
-          <div class="stat-label">Habit Completion</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-value" id="totalEntries">0</div>
-          <div class="stat-label">Total Entries</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-value" id="currentStreak">0</div>
-          <div class="stat-label">Day Streak</div>
-        </div>
-        
-        <div class="stat-card">
-          <div class="stat-value" id="moodAverage">-</div>
-          <div class="stat-label">Avg. Mood</div>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <p>Mindful Moments &copy; <span id="currentYear"></span> | Track your mental wellness journey</p>
-    </footer>
+      </footer>
+    </div>
   </div>
 
   <!-- Templates -->
