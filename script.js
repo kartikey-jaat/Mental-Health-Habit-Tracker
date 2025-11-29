@@ -2,7 +2,14 @@
 const STORAGE_VERSION = 1;
 const DEBOUNCE_DELAY = 300;
 
-// DOM Elements cache
+// Simple UUID generator for unique IDs
+function generateId() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
+// DOM Elements cache (add checks when using)
 const elements = {
   themeToggle: document.getElementById('themeToggle'),
   moodForm: document.getElementById('moodForm'),
@@ -42,18 +49,13 @@ let state = {
 
 // Utility functions
 const utils = {
-  // Safe text content setter
   setTextContent(element, text) {
     if (element) element.textContent = text;
   },
-
-  // Sanitize user input
   sanitizeInput(input) {
     if (typeof input !== 'string') return '';
     return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   },
-
-  // Debounce function
   debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -65,8 +67,6 @@ const utils = {
       timeout = setTimeout(later, wait);
     };
   },
-
-  // Format date
   formatDate(timestamp) {
     const date = new Date(timestamp);
     return date.toLocaleDateString('en-US', {
@@ -76,8 +76,6 @@ const utils = {
       day: 'numeric'
     });
   },
-
-  // Format time
   formatTime(timestamp) {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -85,8 +83,6 @@ const utils = {
       minute: '2-digit'
     });
   },
-
-  // Get mood emoji
   getMoodEmoji(mood) {
     const emojis = {
       'Happy': '😊',
@@ -99,11 +95,8 @@ const utils = {
     };
     return emojis[mood] || '😐';
   },
-
-  // Calculate mood average
   calculateMoodAverage(entries) {
     if (entries.length === 0) return '-';
-    
     const moodValues = {
       'Sad': 1,
       'Stressed': 2,
@@ -113,16 +106,12 @@ const utils = {
       'Happy': 6,
       'Excited': 7
     };
-    
     const sum = entries.reduce((total, entry) => {
       return total + (moodValues[entry.mood] || 4);
     }, 0);
-    
     const average = sum / entries.length;
     return average.toFixed(1);
   },
-
-  // Update progress ring
   updateProgressRing(percentage) {
     if (elements.progressRing) {
       const circumference = 2 * Math.PI * 54;
@@ -130,8 +119,6 @@ const utils = {
       elements.progressRing.style.strokeDashoffset = offset;
     }
   },
-
-  // Set current year in footer
   setCurrentYear() {
     if (elements.currentYear) {
       elements.currentYear.textContent = new Date().getFullYear();
@@ -141,24 +128,20 @@ const utils = {
 
 // Storage module
 const storage = {
-  // Versioned data structure
   getData() {
     const rawData = localStorage.getItem('mindfulMomentsData');
     if (!rawData) return null;
-
     try {
       const data = JSON.parse(rawData);
       if (data.version === STORAGE_VERSION) {
         return data;
       }
-      // Future: Add migration logic here for different versions
       return null;
     } catch (error) {
       console.error('Error parsing stored data:', error);
       return null;
     }
   },
-
   setData(data) {
     const versionedData = {
       version: STORAGE_VERSION,
@@ -173,19 +156,14 @@ const storage = {
       return false;
     }
   },
-
-  // Specific getters
   getJournalEntries() {
     const stored = this.getData();
     return stored?.data?.journalEntries || [];
   },
-
   getHabits() {
     const stored = this.getData();
     return stored?.data?.habits || [];
   },
-
-  // Specific setters
   setJournalEntries(entries) {
     const currentData = this.getData()?.data || {};
     return this.setData({
@@ -193,7 +171,6 @@ const storage = {
       journalEntries: entries
     });
   },
-
   setHabits(habits) {
     const currentData = this.getData()?.data || {};
     return this.setData({
@@ -201,13 +178,9 @@ const storage = {
       habits: habits
     });
   },
-
-  // Clear all data
   clearAll() {
     localStorage.removeItem('mindfulMomentsData');
   },
-
-  // Export data
   exportData() {
     const data = this.getData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -220,8 +193,6 @@ const storage = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
-
-  // Import data
   importData(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -246,51 +217,39 @@ const storage = {
 
 // UI module
 const ui = {
-  // Show notification
   showNotification(message, type = 'info', duration = 5000) {
     // Remove existing notification
     const existing = document.querySelector('.notification');
     if (existing) existing.remove();
-
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.setAttribute('role', 'alert');
     notification.setAttribute('aria-live', 'assertive');
-
     const messageSpan = document.createElement('span');
     messageSpan.textContent = message;
-    
     const closeButton = document.createElement('button');
     closeButton.className = 'notification-close';
     closeButton.setAttribute('aria-label', 'Close notification');
-    
     const closeIcon = document.createElement('i');
     closeIcon.className = 'fas fa-times';
     closeIcon.setAttribute('aria-hidden', 'true');
-    
     closeButton.appendChild(closeIcon);
     notification.appendChild(messageSpan);
     notification.appendChild(closeButton);
-
     document.body.appendChild(notification);
-
-    // Auto-remove
     setTimeout(() => {
       if (notification.parentNode) {
         notification.style.animation = 'slideInDown 0.3s ease reverse';
         setTimeout(() => notification.remove(), 300);
       }
     }, duration);
-
-    // Close button
     closeButton.addEventListener('click', () => {
       notification.style.animation = 'slideInDown 0.3s ease reverse';
       setTimeout(() => notification.remove(), 300);
     });
   },
-
-  // Set button loading state
   setButtonLoading(button, isLoading) {
+    if (!button) return;
     if (isLoading) {
       button.classList.add('loading');
       button.disabled = true;
@@ -299,36 +258,28 @@ const ui = {
       button.disabled = false;
     }
   },
-
-  // Show empty state
   showEmptyState(container, message, icon = 'fas fa-feather') {
+    if (!container) return;
     const emptyState = document.createElement('div');
     emptyState.className = 'empty-state';
-    
     const iconElement = document.createElement('i');
     iconElement.className = `${icon} icon`;
     iconElement.setAttribute('aria-hidden', 'true');
-    
     const messageElement = document.createElement('p');
     messageElement.textContent = message;
-    
     emptyState.appendChild(iconElement);
     emptyState.appendChild(messageElement);
-    
     container.innerHTML = '';
     container.appendChild(emptyState);
   },
-
-  // Render habit list
   renderHabits(habits, filter = 'all') {
+    if (!elements.habitList) return;
     const fragment = document.createDocumentFragment();
-    
     const filteredHabits = habits.filter(habit => {
       if (filter === 'active') return !habit.completed;
       if (filter === 'completed') return habit.completed;
       return true;
     });
-
     if (filteredHabits.length === 0) {
       this.showEmptyState(
         elements.habitList, 
@@ -337,73 +288,54 @@ const ui = {
       );
       return;
     }
-
     filteredHabits.forEach(habit => {
       const habitItem = document.createElement('li');
       habitItem.className = 'habit-item';
       habitItem.setAttribute('role', 'listitem');
-      
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'habit-checkbox';
       checkbox.setAttribute('aria-label', `Mark "${habit.text}" as completed`);
       checkbox.checked = habit.completed;
       checkbox.disabled = habit.completed;
-      
       const text = document.createElement('span');
       text.className = 'habit-text';
       utils.setTextContent(text, habit.text);
-      
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-habit';
       deleteBtn.setAttribute('aria-label', `Delete habit "${habit.text}"`);
-      
       const deleteIcon = document.createElement('i');
       deleteIcon.className = 'fas fa-times';
       deleteIcon.setAttribute('aria-hidden', 'true');
-      
       deleteBtn.appendChild(deleteIcon);
-      
       if (habit.completed) {
         habitItem.classList.add('completed');
       }
-
       // Add event listeners
       checkbox.addEventListener('change', () => {
         app.toggleHabit(habit.id);
       });
-
       deleteBtn.addEventListener('click', () => {
         app.deleteHabit(habit.id);
       });
-
       habitItem.appendChild(checkbox);
       habitItem.appendChild(text);
       habitItem.appendChild(deleteBtn);
       fragment.appendChild(habitItem);
     });
-
     elements.habitList.innerHTML = '';
     elements.habitList.appendChild(fragment);
   },
-
-  // Render journal entries
   renderJournalEntries(entries, moodFilter = 'all', sortOrder = 'newest') {
-    // Clear the log container first
+    if (!elements.log) return;
     elements.log.innerHTML = '';
-    
     let filteredEntries = [...entries];
-    
-    // Filter by mood
     if (moodFilter !== 'all') {
       filteredEntries = filteredEntries.filter(entry => entry.mood === moodFilter);
     }
-    
-    // Sort entries
     filteredEntries.sort((a, b) => {
       return sortOrder === 'newest' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp;
     });
-
     if (filteredEntries.length === 0) {
       this.showEmptyState(
         elements.log,
@@ -414,27 +346,21 @@ const ui = {
       );
       return;
     }
-
     filteredEntries.forEach(entry => {
       const article = document.createElement('article');
       article.className = 'log-entry';
-      
       const header = document.createElement('header');
       header.className = 'entry-header';
-      
       const date = document.createElement('time');
       date.className = 'entry-date';
       date.setAttribute('datetime', new Date(entry.timestamp).toISOString());
       utils.setTextContent(date, `${utils.formatDate(entry.timestamp)} at ${utils.formatTime(entry.timestamp)}`);
-      
       const mood = document.createElement('span');
       mood.className = 'entry-mood';
       const moodEmoji = utils.getMoodEmoji(entry.mood);
       mood.textContent = `${moodEmoji} ${entry.mood}`;
-      
       const content = document.createElement('div');
       content.className = 'entry-content';
-      
       if (entry.journal && entry.journal.trim() !== '') {
         utils.setTextContent(content, entry.journal);
       } else {
@@ -442,7 +368,6 @@ const ui = {
         content.style.fontStyle = 'italic';
         content.style.color = 'var(--text-light)';
       }
-
       header.appendChild(date);
       header.appendChild(mood);
       article.appendChild(header);
@@ -450,23 +375,15 @@ const ui = {
       elements.log.appendChild(article);
     });
   },
-
-  // Update statistics
   updateStats(entries, habits) {
     utils.setTextContent(elements.totalEntries, entries.length);
-    
-    // Calculate streak
     const today = new Date().toDateString();
     let streak = 0;
-    
-    // Simple streak calculation
     const sortedEntries = [...entries].sort((a, b) => b.timestamp - a.timestamp);
     let currentDate = new Date();
-    
     for (let i = 0; i < sortedEntries.length; i++) {
       const entryDate = new Date(sortedEntries[i].timestamp).toDateString();
       const checkDate = new Date(currentDate).toDateString();
-      
       if (entryDate === checkDate) {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
@@ -474,38 +391,23 @@ const ui = {
         break;
       }
     }
-    
     utils.setTextContent(elements.currentStreak, streak);
-    
-    // Calculate completion rate
     const completedHabits = habits.filter(habit => habit.completed).length;
     const completionRate = habits.length > 0 ? Math.round((completedHabits / habits.length) * 100) : 0;
     utils.setTextContent(elements.completionRate, `${completionRate}%`);
     utils.updateProgressRing(completionRate);
-    
-    // Calculate mood average
     const moodAverage = utils.calculateMoodAverage(entries);
     utils.setTextContent(elements.moodAverage, moodAverage);
   },
-
-  // Initialize mood selector
   initMoodSelector() {
-    const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
-    
+    const moodOptions = elements.moodSelector ? elements.moodSelector.querySelectorAll('.mood-option') : [];
     moodOptions.forEach(option => {
       option.addEventListener('click', () => {
-        // Remove selected class from all options
         moodOptions.forEach(opt => opt.classList.remove('selected'));
-        
-        // Add selected class to clicked option
         option.classList.add('selected');
-        
-        // Update hidden select value
         const moodValue = option.getAttribute('data-value');
-        elements.moodSelect.value = moodValue;
+        if (elements.moodSelect) elements.moodSelect.value = moodValue;
         state.selectedMood = moodValue;
-        
-        // Clear any error
         const errorElement = document.getElementById('mood-error');
         if (errorElement) {
           errorElement.classList.remove('show');
@@ -519,37 +421,34 @@ const ui = {
 // Theme module
 const theme = {
   init() {
-    // Check for saved theme or prefer-color-scheme
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
     let theme = savedTheme || (prefersDark ? 'dark' : 'light');
     this.setTheme(theme);
-    
-    // Update toggle button state
-    elements.themeToggle.setAttribute('aria-pressed', theme === 'dark');
+    if (elements.themeToggle) {
+      elements.themeToggle.setAttribute('aria-pressed', theme === 'dark');
+    }
     this.updateToggleIcon(theme);
-    
-    // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       if (!localStorage.getItem('theme')) {
         this.setTheme(e.matches ? 'dark' : 'light');
       }
     });
   },
-
   setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    elements.themeToggle.setAttribute('aria-pressed', theme === 'dark');
+    if (elements.themeToggle) {
+      elements.themeToggle.setAttribute('aria-pressed', theme === 'dark');
+    }
     this.updateToggleIcon(theme);
   },
-
   updateToggleIcon(theme) {
-    const icon = elements.themeToggle.querySelector('i');
-    icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    const icon = elements.themeToggle ? elements.themeToggle.querySelector('i') : null;
+    if (icon) {
+      icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
   },
-
   toggle() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -560,104 +459,89 @@ const theme = {
 // Main application
 const app = {
   init() {
-    // Initialize theme
     theme.init();
-    
-    // Set current year
     utils.setCurrentYear();
-    
-    // Load data
     this.loadData();
-    
-    // Set up event listeners
     this.setupEventListeners();
-    
-    // Initialize UI components
     ui.initMoodSelector();
-    
-    // Render initial UI
     this.renderUI();
-    
-    // Show welcome message for first-time users
     if (state.journalEntries.length === 0 && state.habits.length === 0) {
       setTimeout(() => {
         ui.showNotification('Welcome! Start by adding a journal entry or habit.', 'info', 8000);
       }, 1000);
     }
   },
-
   loadData() {
-    state.journalEntries = storage.getJournalEntries();
-    state.habits = storage.getHabits();
-    
+    const entries = storage.getJournalEntries();
+    const habits = storage.getHabits();
+    state.journalEntries = Array.isArray(entries) ? entries : [];
+    state.habits = Array.isArray(habits) ? habits : [];
     console.log('Loaded entries:', state.journalEntries);
     console.log('Loaded habits:', state.habits);
   },
-
   saveData() {
     const journalSuccess = storage.setJournalEntries(state.journalEntries);
     const habitsSuccess = storage.setHabits(state.habits);
-    
     if (!journalSuccess || !habitsSuccess) {
       ui.showNotification('Error saving data to storage', 'danger');
       return false;
     }
     return true;
   },
-
   setupEventListeners() {
-    // Theme toggle
-    elements.themeToggle.addEventListener('click', () => theme.toggle());
-    
-    // Mood form submission
-    elements.moodForm.addEventListener('submit', (e) => this.handleMoodSubmit(e));
-    
-    // Add habit
-    elements.addHabitBtn.addEventListener('click', () => this.addHabit());
-    elements.habitInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.addHabit();
-      }
-    });
-    
-    // Clear data
-    elements.clearDataBtn.addEventListener('click', () => this.clearAllData());
-    
-    // Export/import
-    elements.exportBtn.addEventListener('click', () => storage.exportData());
-    elements.importBtn.addEventListener('click', () => elements.importFile.click());
-    elements.importFile.addEventListener('change', (e) => this.handleImport(e));
-    
-    // Filters with debouncing
-    elements.habitFilter.addEventListener('change', (e) => {
-      state.filters.habitStatus = e.target.value;
-      this.renderUI();
-    });
-    
-    elements.moodFilter.addEventListener('change', utils.debounce((e) => {
-      state.filters.mood = e.target.value;
-      this.renderUI();
-    }, DEBOUNCE_DELAY));
-    
-    elements.sortOrder.addEventListener('change', utils.debounce((e) => {
-      state.filters.sort = e.target.value;
-      this.renderUI();
-    }, DEBOUNCE_DELAY));
+    if (elements.themeToggle) {
+      elements.themeToggle.addEventListener('click', () => theme.toggle());
+    }
+    if (elements.moodForm) {
+      elements.moodForm.addEventListener('submit', (e) => this.handleMoodSubmit(e));
+    }
+    if (elements.addHabitBtn) {
+      elements.addHabitBtn.addEventListener('click', () => this.addHabit());
+    }
+    if (elements.habitInput) {
+      elements.habitInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.addHabit();
+        }
+      });
+    }
+    if (elements.clearDataBtn) {
+      elements.clearDataBtn.addEventListener('click', () => this.clearAllData());
+    }
+    if (elements.exportBtn) {
+      elements.exportBtn.addEventListener('click', () => storage.exportData());
+    }
+    if (elements.importBtn && elements.importFile) {
+      elements.importBtn.addEventListener('click', () => elements.importFile.click());
+      elements.importFile.addEventListener('change', (e) => this.handleImport(e));
+    }
+    if (elements.habitFilter) {
+      elements.habitFilter.addEventListener('change', (e) => {
+        state.filters.habitStatus = e.target.value;
+        this.renderUI();
+      });
+    }
+    if (elements.moodFilter) {
+      elements.moodFilter.addEventListener('change', utils.debounce((e) => {
+        state.filters.mood = e.target.value;
+        this.renderUI();
+      }, DEBOUNCE_DELAY));
+    }
+    if (elements.sortOrder) {
+      elements.sortOrder.addEventListener('change', utils.debounce((e) => {
+        state.filters.sort = e.target.value;
+        this.renderUI();
+      }, DEBOUNCE_DELAY));
+    }
   },
-
-  // Fixed: handleMoodSubmit function
   handleMoodSubmit(e) {
     e.preventDefault();
     console.log('Form submitted');
-    
-    // Get values directly from form elements
-    const mood = elements.moodSelect.value;
-    const journal = document.getElementById('journal').value;
-    
+    const mood = elements.moodSelect ? elements.moodSelect.value : '';
+    const journalElem = document.getElementById('journal');
+    const journal = journalElem ? journalElem.value : '';
     console.log('Mood selected:', mood);
     console.log('Journal text:', journal);
-    
-    // Validate form
     if (!mood || mood === '') {
       const moodError = document.getElementById('mood-error');
       if (moodError) {
@@ -667,165 +551,115 @@ const app = {
       ui.showNotification('Please select a mood before saving', 'warning');
       return;
     }
-    
     ui.setButtonLoading(elements.submitBtn, true);
-    
-    // Create entry
     const entry = {
-      id: Date.now(),
+      id: generateId(),
       mood: mood,
       journal: utils.sanitizeInput(journal),
       timestamp: Date.now()
     };
-    
     console.log('Created entry:', entry);
-    
-    // Add to state
     state.journalEntries.unshift(entry);
     console.log('State after adding entry:', state.journalEntries);
-    
-    // Save to storage
     const saveSuccess = this.saveData();
-    
     if (saveSuccess) {
-      // Update UI
       this.renderUI();
-      
-      // Reset form
-      elements.moodForm.reset();
-      
-      // Reset mood selector
-      const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
-      moodOptions.forEach(opt => opt.classList.remove('selected'));
+      if (elements.moodForm) elements.moodForm.reset();
+      if (elements.moodSelector) {
+        const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
+        moodOptions.forEach(opt => opt.classList.remove('selected'));
+      }
       state.selectedMood = null;
-      
-      // Clear any error messages
       const moodError = document.getElementById('mood-error');
       if (moodError) {
         moodError.classList.remove('show');
         moodError.textContent = '';
       }
-      
       ui.showNotification('Journal entry saved successfully!', 'success');
     } else {
       ui.showNotification('Failed to save entry. Please try again.', 'danger');
-      // Remove the entry from state if save failed
       state.journalEntries.shift();
     }
-    
     ui.setButtonLoading(elements.submitBtn, false);
   },
-
   addHabit() {
+    if (!elements.habitInput || !elements.addHabitBtn) return;
     const habitText = elements.habitInput.value.trim();
-    
     if (!habitText) {
       ui.showNotification('Please enter a habit name', 'warning');
       elements.habitInput.focus();
       return;
     }
-    
     ui.setButtonLoading(elements.addHabitBtn, true);
-    
-    // Create habit
     const habit = {
-      id: Date.now(),
+      id: generateId(),
       text: utils.sanitizeInput(habitText),
       completed: false,
       createdAt: Date.now()
     };
-    
-    // Add to state
     state.habits.push(habit);
-    
-    // Save to storage
     const saveSuccess = this.saveData();
-    
     if (saveSuccess) {
-      // Update UI
       this.renderUI();
-      
-      // Reset input
       elements.habitInput.value = '';
-      
       ui.showNotification('Habit added successfully!', 'success');
     } else {
       ui.showNotification('Failed to save habit. Please try again.', 'danger');
-      // Remove the habit from state if save failed
       state.habits.pop();
     }
-    
     ui.setButtonLoading(elements.addHabitBtn, false);
   },
-
   toggleHabit(id) {
     const habit = state.habits.find(h => h.id === id);
     if (habit) {
       habit.completed = !habit.completed;
       this.saveData();
       this.renderUI();
-      
       if (habit.completed) {
         ui.showNotification('Habit completed! Great job! 🎉', 'success');
       }
     }
   },
-
   deleteHabit(id) {
     const habit = state.habits.find(h => h.id === id);
     if (!habit) return;
-    
     if (!confirm(`Are you sure you want to delete the habit "${habit.text}"?`)) return;
-    
     state.habits = state.habits.filter(h => h.id !== id);
     this.saveData();
     this.renderUI();
-    
     ui.showNotification(`Habit "${habit.text}" deleted`, 'info', 6000);
   },
-
   async handleImport(e) {
     const file = e.target.files[0];
     if (!file) return;
-    
     try {
       ui.setButtonLoading(elements.importBtn, true);
       const data = await storage.importData(file);
-      
       state.journalEntries = data.journalEntries || [];
       state.habits = data.habits || [];
       this.renderUI();
-      
       ui.showNotification('Data imported successfully!', 'success');
     } catch (error) {
       console.error('Import error:', error);
       ui.showNotification('Failed to import data. Please check the file format.', 'danger');
     } finally {
       ui.setButtonLoading(elements.importBtn, false);
-      e.target.value = ''; // Reset file input
+      e.target.value = '';
     }
   },
-
   clearAllData() {
     if (!confirm('Are you sure you want to delete ALL your data? This cannot be undone.')) return;
-    
     storage.clearAll();
     state.journalEntries = [];
     state.habits = [];
     this.renderUI();
-    
     ui.showNotification('All data has been cleared', 'info');
   },
-
   renderUI() {
     console.log('Rendering UI with entries:', state.journalEntries);
-    
-    // Update filter dropdowns to reflect current state
     if (elements.habitFilter) elements.habitFilter.value = state.filters.habitStatus;
     if (elements.moodFilter) elements.moodFilter.value = state.filters.mood;
     if (elements.sortOrder) elements.sortOrder.value = state.filters.sort;
-    
-    // Render all UI components
     ui.renderHabits(state.habits, state.filters.habitStatus);
     ui.renderJournalEntries(
       state.journalEntries, 
@@ -836,7 +670,6 @@ const app = {
   }
 };
 
-// Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   app.init();
 });
