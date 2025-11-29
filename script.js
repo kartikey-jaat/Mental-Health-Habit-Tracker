@@ -28,10 +28,6 @@ const elements = {
   currentYear: document.getElementById('currentYear')
 };
 
-// Templates
-const habitTemplate = document.getElementById('habit-template');
-const entryTemplate = document.getElementById('entry-template');
-
 // State
 let state = {
   journalEntries: [],
@@ -169,7 +165,13 @@ const storage = {
       timestamp: Date.now(),
       data: data
     };
-    localStorage.setItem('mindfulMomentsData', JSON.stringify(versionedData));
+    try {
+      localStorage.setItem('mindfulMomentsData', JSON.stringify(versionedData));
+      return true;
+    } catch (error) {
+      console.error('Error saving data:', error);
+      return false;
+    }
   },
 
   // Specific getters
@@ -186,7 +188,7 @@ const storage = {
   // Specific setters
   setJournalEntries(entries) {
     const currentData = this.getData()?.data || {};
-    this.setData({
+    return this.setData({
       ...currentData,
       journalEntries: entries
     });
@@ -194,7 +196,7 @@ const storage = {
 
   setHabits(habits) {
     const currentData = this.getData()?.data || {};
-    this.setData({
+    return this.setData({
       ...currentData,
       habits: habits
     });
@@ -337,19 +339,33 @@ const ui = {
     }
 
     filteredHabits.forEach(habit => {
-      const clone = document.importNode(habitTemplate.content, true);
-      const item = clone.querySelector('.habit-item');
-      const checkbox = clone.querySelector('.habit-checkbox');
-      const text = clone.querySelector('.habit-text');
-      const deleteBtn = clone.querySelector('.delete-habit');
-
-      // Set habit data
-      utils.setTextContent(text, habit.text);
+      const habitItem = document.createElement('li');
+      habitItem.className = 'habit-item';
+      habitItem.setAttribute('role', 'listitem');
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'habit-checkbox';
+      checkbox.setAttribute('aria-label', `Mark "${habit.text}" as completed`);
       checkbox.checked = habit.completed;
       checkbox.disabled = habit.completed;
       
+      const text = document.createElement('span');
+      text.className = 'habit-text';
+      utils.setTextContent(text, habit.text);
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-habit';
+      deleteBtn.setAttribute('aria-label', `Delete habit "${habit.text}"`);
+      
+      const deleteIcon = document.createElement('i');
+      deleteIcon.className = 'fas fa-times';
+      deleteIcon.setAttribute('aria-hidden', 'true');
+      
+      deleteBtn.appendChild(deleteIcon);
+      
       if (habit.completed) {
-        item.classList.add('completed');
+        habitItem.classList.add('completed');
       }
 
       // Add event listeners
@@ -361,14 +377,17 @@ const ui = {
         app.deleteHabit(habit.id);
       });
 
-      fragment.appendChild(clone);
+      habitItem.appendChild(checkbox);
+      habitItem.appendChild(text);
+      habitItem.appendChild(deleteBtn);
+      fragment.appendChild(habitItem);
     });
 
     elements.habitList.innerHTML = '';
     elements.habitList.appendChild(fragment);
   },
 
-  // Render journal entries - FIXED VERSION
+  // Render journal entries
   renderJournalEntries(entries, moodFilter = 'all', sortOrder = 'newest') {
     // Clear the log container first
     elements.log.innerHTML = '';
@@ -397,22 +416,25 @@ const ui = {
     }
 
     filteredEntries.forEach(entry => {
-      const clone = document.importNode(entryTemplate.content, true);
-      const article = clone.querySelector('article');
-      const date = clone.querySelector('.entry-date');
-      const mood = clone.querySelector('.entry-mood');
-      const content = clone.querySelector('.entry-content');
-
-      // Set entry data
-      const dateTime = new Date(entry.timestamp);
-      date.setAttribute('datetime', dateTime.toISOString());
+      const article = document.createElement('article');
+      article.className = 'log-entry';
+      
+      const header = document.createElement('header');
+      header.className = 'entry-header';
+      
+      const date = document.createElement('time');
+      date.className = 'entry-date';
+      date.setAttribute('datetime', new Date(entry.timestamp).toISOString());
       utils.setTextContent(date, `${utils.formatDate(entry.timestamp)} at ${utils.formatTime(entry.timestamp)}`);
       
-      // Set mood with emoji and text
+      const mood = document.createElement('span');
+      mood.className = 'entry-mood';
       const moodEmoji = utils.getMoodEmoji(entry.mood);
       mood.textContent = `${moodEmoji} ${entry.mood}`;
       
-      // Set journal content - handle empty content case
+      const content = document.createElement('div');
+      content.className = 'entry-content';
+      
       if (entry.journal && entry.journal.trim() !== '') {
         utils.setTextContent(content, entry.journal);
       } else {
@@ -421,7 +443,11 @@ const ui = {
         content.style.color = 'var(--text-light)';
       }
 
-      elements.log.appendChild(clone);
+      header.appendChild(date);
+      header.appendChild(mood);
+      article.appendChild(header);
+      article.appendChild(content);
+      elements.log.appendChild(article);
     });
   },
 
@@ -564,21 +590,26 @@ const app = {
     state.journalEntries = storage.getJournalEntries();
     state.habits = storage.getHabits();
     
-    // Debug log to check if data is loading
-    console.log('Loaded entries:', state.journalEntries.length);
-    console.log('Loaded habits:', state.habits.length);
+    console.log('Loaded entries:', state.journalEntries);
+    console.log('Loaded habits:', state.habits);
   },
 
   saveData() {
-    storage.setJournalEntries(state.journalEntries);
-    storage.setHabits(state.habits);
+    const journalSuccess = storage.setJournalEntries(state.journalEntries);
+    const habitsSuccess = storage.setHabits(state.habits);
+    
+    if (!journalSuccess || !habitsSuccess) {
+      ui.showNotification('Error saving data to storage', 'danger');
+      return false;
+    }
+    return true;
   },
 
   setupEventListeners() {
     // Theme toggle
     elements.themeToggle.addEventListener('click', () => theme.toggle());
     
-    // Mood form submission - FIXED: Use direct reference instead of formData
+    // Mood form submission
     elements.moodForm.addEventListener('submit', (e) => this.handleMoodSubmit(e));
     
     // Add habit
@@ -612,29 +643,34 @@ const app = {
       state.filters.sort = e.target.value;
       this.renderUI();
     }, DEBOUNCE_DELAY));
-    
-    // Form validation
-    elements.moodForm.addEventListener('input', utils.debounce(() => {
-      this.validateForm();
-    }, DEBOUNCE_DELAY));
   },
 
-  // FIXED: handleMoodSubmit function
+  // Fixed: handleMoodSubmit function
   handleMoodSubmit(e) {
     e.preventDefault();
+    console.log('Form submitted');
     
-    // Get mood directly from selected value
-    const mood = state.selectedMood || elements.moodSelect.value;
-    const journal = elements.journal.value.trim();
+    // Get values directly from form elements
+    const mood = elements.moodSelect.value;
+    const journal = document.getElementById('journal').value;
+    
+    console.log('Mood selected:', mood);
+    console.log('Journal text:', journal);
     
     // Validate form
-    if (!this.validateForm()) {
+    if (!mood || mood === '') {
+      const moodError = document.getElementById('mood-error');
+      if (moodError) {
+        moodError.classList.add('show');
+        moodError.textContent = 'Please select your mood';
+      }
+      ui.showNotification('Please select a mood before saving', 'warning');
       return;
     }
     
     ui.setButtonLoading(elements.submitBtn, true);
     
-    // Create entry immediately
+    // Create entry
     const entry = {
       id: Date.now(),
       mood: mood,
@@ -642,60 +678,42 @@ const app = {
       timestamp: Date.now()
     };
     
-    console.log('Adding entry:', entry); // Debug log
+    console.log('Created entry:', entry);
     
-    // Add to state immediately for instant UI update
+    // Add to state
     state.journalEntries.unshift(entry);
+    console.log('State after adding entry:', state.journalEntries);
     
     // Save to storage
-    this.saveData();
+    const saveSuccess = this.saveData();
     
-    // Update UI immediately
-    this.renderUI();
-    
-    // Reset form
-    elements.moodForm.reset();
-    
-    // Reset mood selector
-    const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
-    moodOptions.forEach(opt => opt.classList.remove('selected'));
-    state.selectedMood = null;
-    
-    // Clear any error messages
-    const moodError = document.getElementById('mood-error');
-    if (moodError) {
-      moodError.classList.remove('show');
-      moodError.textContent = '';
-    }
-    
-    // Show success message
-    setTimeout(() => {
-      ui.setButtonLoading(elements.submitBtn, false);
-      ui.showNotification('Journal entry saved successfully!', 'success');
-    }, 300);
-  },
-
-  validateForm() {
-    const mood = state.selectedMood || elements.moodSelect.value;
-    const moodError = document.getElementById('mood-error');
-    
-    let isValid = true;
-    
-    // Validate mood
-    if (!mood) {
-      if (moodError) {
-        moodError.classList.add('show');
-        utils.setTextContent(moodError, 'Please select your mood');
-      }
-      isValid = false;
-    } else {
+    if (saveSuccess) {
+      // Update UI
+      this.renderUI();
+      
+      // Reset form
+      elements.moodForm.reset();
+      
+      // Reset mood selector
+      const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
+      moodOptions.forEach(opt => opt.classList.remove('selected'));
+      state.selectedMood = null;
+      
+      // Clear any error messages
+      const moodError = document.getElementById('mood-error');
       if (moodError) {
         moodError.classList.remove('show');
         moodError.textContent = '';
       }
+      
+      ui.showNotification('Journal entry saved successfully!', 'success');
+    } else {
+      ui.showNotification('Failed to save entry. Please try again.', 'danger');
+      // Remove the entry from state if save failed
+      state.journalEntries.shift();
     }
     
-    return isValid;
+    ui.setButtonLoading(elements.submitBtn, false);
   },
 
   addHabit() {
@@ -709,7 +727,7 @@ const app = {
     
     ui.setButtonLoading(elements.addHabitBtn, true);
     
-    // Create habit immediately
+    // Create habit
     const habit = {
       id: Date.now(),
       text: utils.sanitizeInput(habitText),
@@ -717,23 +735,27 @@ const app = {
       createdAt: Date.now()
     };
     
-    // Add to state immediately for instant UI update
+    // Add to state
     state.habits.push(habit);
     
     // Save to storage
-    this.saveData();
+    const saveSuccess = this.saveData();
     
-    // Update UI immediately
-    this.renderUI();
-    
-    // Reset input
-    elements.habitInput.value = '';
-    
-    // Show success message
-    setTimeout(() => {
-      ui.setButtonLoading(elements.addHabitBtn, false);
+    if (saveSuccess) {
+      // Update UI
+      this.renderUI();
+      
+      // Reset input
+      elements.habitInput.value = '';
+      
       ui.showNotification('Habit added successfully!', 'success');
-    }, 300);
+    } else {
+      ui.showNotification('Failed to save habit. Please try again.', 'danger');
+      // Remove the habit from state if save failed
+      state.habits.pop();
+    }
+    
+    ui.setButtonLoading(elements.addHabitBtn, false);
   },
 
   toggleHabit(id) {
@@ -753,20 +775,13 @@ const app = {
     const habit = state.habits.find(h => h.id === id);
     if (!habit) return;
     
-    // Store for potential undo
-    const deletedHabit = { ...habit };
-    
     if (!confirm(`Are you sure you want to delete the habit "${habit.text}"?`)) return;
     
     state.habits = state.habits.filter(h => h.id !== id);
     this.saveData();
     this.renderUI();
     
-    ui.showNotification(
-      `Habit "${habit.text}" deleted`, 
-      'info', 
-      6000
-    );
+    ui.showNotification(`Habit "${habit.text}" deleted`, 'info', 6000);
   },
 
   async handleImport(e) {
@@ -779,7 +794,6 @@ const app = {
       
       state.journalEntries = data.journalEntries || [];
       state.habits = data.habits || [];
-      this.saveData();
       this.renderUI();
       
       ui.showNotification('Data imported successfully!', 'success');
@@ -804,8 +818,7 @@ const app = {
   },
 
   renderUI() {
-    // Debug log to check rendering
-    console.log('Rendering UI with entries:', state.journalEntries.length);
+    console.log('Rendering UI with entries:', state.journalEntries);
     
     // Update filter dropdowns to reflect current state
     if (elements.habitFilter) elements.habitFilter.value = state.filters.habitStatus;
@@ -827,8 +840,3 @@ const app = {
 document.addEventListener('DOMContentLoaded', () => {
   app.init();
 });
-
-// Export for testing
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { app, storage, theme, ui, utils };
-}
