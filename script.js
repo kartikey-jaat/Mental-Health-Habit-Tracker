@@ -277,14 +277,14 @@ const ui = {
     // Auto-remove
     setTimeout(() => {
       if (notification.parentNode) {
-        notification.style.animation = 'slideInRight 0.3s ease reverse';
+        notification.style.animation = 'slideInDown 0.3s ease reverse';
         setTimeout(() => notification.remove(), 300);
       }
     }, duration);
 
     // Close button
     closeButton.addEventListener('click', () => {
-      notification.style.animation = 'slideInRight 0.3s ease reverse';
+      notification.style.animation = 'slideInDown 0.3s ease reverse';
       setTimeout(() => notification.remove(), 300);
     });
   },
