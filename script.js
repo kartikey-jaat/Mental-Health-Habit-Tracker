@@ -407,9 +407,11 @@ const ui = {
       date.setAttribute('datetime', new Date(entry.timestamp).toISOString());
       utils.setTextContent(date, `${utils.formatDate(entry.timestamp)} at ${utils.formatTime(entry.timestamp)}`);
       
-      mood.textContent = `${utils.getMoodEmoji(entry.mood)} ${entry.mood}`;
+      // FIX: Properly set mood with emoji and text
+      const moodEmoji = utils.getMoodEmoji(entry.mood);
+      mood.textContent = `${moodEmoji} ${entry.mood}`;
       
-      if (entry.journal) {
+      if (entry.journal && entry.journal.trim() !== '') {
         utils.setTextContent(content, entry.journal);
       } else {
         content.style.display = 'none';
@@ -478,7 +480,9 @@ const ui = {
         
         // Clear any error
         const errorElement = document.getElementById('mood-error');
-        errorElement.classList.remove('show');
+        if (errorElement) {
+          errorElement.classList.remove('show');
+        }
       });
     });
   }
@@ -618,30 +622,44 @@ const app = {
     const mood = formData.get('mood');
     const journal = utils.sanitizeInput(formData.get('journal') || '');
     
+    // FIX: Check if mood is actually selected
+    if (!mood || mood === '') {
+      ui.showNotification('Please select a mood', 'warning');
+      return;
+    }
+    
     ui.setButtonLoading(elements.submitBtn, true);
     
-    // Simulate async operation
+    // Create entry immediately
+    const entry = {
+      id: Date.now(),
+      mood: mood,
+      journal: journal,
+      timestamp: Date.now()
+    };
+    
+    // Add to state immediately for instant UI update
+    state.journalEntries.unshift(entry);
+    
+    // Save to storage
+    this.saveData();
+    
+    // Update UI immediately
+    this.renderUI();
+    
+    // Reset form
+    elements.moodForm.reset();
+    
+    // Reset mood selector
+    const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
+    moodOptions.forEach(opt => opt.classList.remove('selected'));
+    state.selectedMood = null;
+    
+    // Show success message
     setTimeout(() => {
-      const entry = {
-        id: Date.now(),
-        mood,
-        journal,
-        timestamp: Date.now()
-      };
-      
-      state.journalEntries.unshift(entry);
-      this.saveData();
-      this.renderUI();
-      elements.moodForm.reset();
-      
-      // Reset mood selector
-      const moodOptions = elements.moodSelector.querySelectorAll('.mood-option');
-      moodOptions.forEach(opt => opt.classList.remove('selected'));
-      state.selectedMood = null;
-      
       ui.setButtonLoading(elements.submitBtn, false);
       ui.showNotification('Journal entry saved successfully!', 'success');
-    }, 500);
+    }, 300);
   },
 
   validateForm() {
@@ -652,12 +670,16 @@ const app = {
     
     // Validate mood
     if (!mood.value) {
-      moodError.classList.add('show');
-      utils.setTextContent(moodError, 'Please select your mood');
+      if (moodError) {
+        moodError.classList.add('show');
+        utils.setTextContent(moodError, 'Please select your mood');
+      }
       mood.setAttribute('aria-invalid', 'true');
       isValid = false;
     } else {
-      moodError.classList.remove('show');
+      if (moodError) {
+        moodError.classList.remove('show');
+      }
       mood.setAttribute('aria-invalid', 'false');
     }
     
@@ -675,23 +697,31 @@ const app = {
     
     ui.setButtonLoading(elements.addHabitBtn, true);
     
-    // Simulate async operation
+    // Create habit immediately
+    const habit = {
+      id: Date.now(),
+      text: utils.sanitizeInput(habitText),
+      completed: false,
+      createdAt: Date.now()
+    };
+    
+    // Add to state immediately for instant UI update
+    state.habits.push(habit);
+    
+    // Save to storage
+    this.saveData();
+    
+    // Update UI immediately
+    this.renderUI();
+    
+    // Reset input
+    elements.habitInput.value = '';
+    
+    // Show success message
     setTimeout(() => {
-      const habit = {
-        id: Date.now(),
-        text: utils.sanitizeInput(habitText),
-        completed: false,
-        createdAt: Date.now()
-      };
-      
-      state.habits.push(habit);
-      this.saveData();
-      this.renderUI();
-      elements.habitInput.value = '';
-      
       ui.setButtonLoading(elements.addHabitBtn, false);
       ui.showNotification('Habit added successfully!', 'success');
-    }, 500);
+    }, 300);
   },
 
   toggleHabit(id) {
@@ -762,6 +792,12 @@ const app = {
   },
 
   renderUI() {
+    // Update filter dropdowns to reflect current state
+    if (elements.habitFilter) elements.habitFilter.value = state.filters.habitStatus;
+    if (elements.moodFilter) elements.moodFilter.value = state.filters.mood;
+    if (elements.sortOrder) elements.sortOrder.value = state.filters.sort;
+    
+    // Render all UI components
     ui.renderHabits(state.habits, state.filters.habitStatus);
     ui.renderJournalEntries(
       state.journalEntries, 
