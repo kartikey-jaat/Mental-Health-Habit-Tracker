@@ -54,9 +54,7 @@ const utils = {
   // Sanitize user input
   sanitizeInput(input) {
     if (typeof input !== 'string') return '';
-    const div = document.createElement('div');
-    div.textContent = input;
-    return div.innerHTML;
+    return input.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   },
 
   // Debounce function
@@ -370,9 +368,10 @@ const ui = {
     elements.habitList.appendChild(fragment);
   },
 
-  // Render journal entries
+  // Render journal entries - FIXED VERSION
   renderJournalEntries(entries, moodFilter = 'all', sortOrder = 'newest') {
-    const fragment = document.createDocumentFragment();
+    // Clear the log container first
+    elements.log.innerHTML = '';
     
     let filteredEntries = [...entries];
     
@@ -399,29 +398,31 @@ const ui = {
 
     filteredEntries.forEach(entry => {
       const clone = document.importNode(entryTemplate.content, true);
+      const article = clone.querySelector('article');
       const date = clone.querySelector('.entry-date');
       const mood = clone.querySelector('.entry-mood');
       const content = clone.querySelector('.entry-content');
 
       // Set entry data
-      date.setAttribute('datetime', new Date(entry.timestamp).toISOString());
+      const dateTime = new Date(entry.timestamp);
+      date.setAttribute('datetime', dateTime.toISOString());
       utils.setTextContent(date, `${utils.formatDate(entry.timestamp)} at ${utils.formatTime(entry.timestamp)}`);
       
-      // FIX: Properly set mood with emoji and text
+      // Set mood with emoji and text
       const moodEmoji = utils.getMoodEmoji(entry.mood);
       mood.textContent = `${moodEmoji} ${entry.mood}`;
       
+      // Set journal content - handle empty content case
       if (entry.journal && entry.journal.trim() !== '') {
         utils.setTextContent(content, entry.journal);
       } else {
-        content.style.display = 'none';
+        content.textContent = 'No journal content';
+        content.style.fontStyle = 'italic';
+        content.style.color = 'var(--text-light)';
       }
 
-      fragment.appendChild(clone);
+      elements.log.appendChild(clone);
     });
-
-    elements.log.innerHTML = '';
-    elements.log.appendChild(fragment);
   },
 
   // Update statistics
@@ -482,6 +483,7 @@ const ui = {
         const errorElement = document.getElementById('mood-error');
         if (errorElement) {
           errorElement.classList.remove('show');
+          errorElement.textContent = '';
         }
       });
     });
@@ -561,6 +563,10 @@ const app = {
   loadData() {
     state.journalEntries = storage.getJournalEntries();
     state.habits = storage.getHabits();
+    
+    // Debug log to check if data is loading
+    console.log('Loaded entries:', state.journalEntries.length);
+    console.log('Loaded habits:', state.habits.length);
   },
 
   saveData() {
@@ -572,7 +578,7 @@ const app = {
     // Theme toggle
     elements.themeToggle.addEventListener('click', () => theme.toggle());
     
-    // Mood form submission
+    // Mood form submission - FIXED: Use direct reference instead of formData
     elements.moodForm.addEventListener('submit', (e) => this.handleMoodSubmit(e));
     
     // Add habit
@@ -613,18 +619,16 @@ const app = {
     }, DEBOUNCE_DELAY));
   },
 
+  // FIXED: handleMoodSubmit function
   handleMoodSubmit(e) {
     e.preventDefault();
     
-    if (!this.validateForm()) return;
+    // Get mood directly from selected value
+    const mood = state.selectedMood || elements.moodSelect.value;
+    const journal = elements.journal.value.trim();
     
-    const formData = new FormData(elements.moodForm);
-    const mood = formData.get('mood');
-    const journal = utils.sanitizeInput(formData.get('journal') || '');
-    
-    // FIX: Check if mood is actually selected
-    if (!mood || mood === '') {
-      ui.showNotification('Please select a mood', 'warning');
+    // Validate form
+    if (!this.validateForm()) {
       return;
     }
     
@@ -634,9 +638,11 @@ const app = {
     const entry = {
       id: Date.now(),
       mood: mood,
-      journal: journal,
+      journal: utils.sanitizeInput(journal),
       timestamp: Date.now()
     };
+    
+    console.log('Adding entry:', entry); // Debug log
     
     // Add to state immediately for instant UI update
     state.journalEntries.unshift(entry);
@@ -655,6 +661,13 @@ const app = {
     moodOptions.forEach(opt => opt.classList.remove('selected'));
     state.selectedMood = null;
     
+    // Clear any error messages
+    const moodError = document.getElementById('mood-error');
+    if (moodError) {
+      moodError.classList.remove('show');
+      moodError.textContent = '';
+    }
+    
     // Show success message
     setTimeout(() => {
       ui.setButtonLoading(elements.submitBtn, false);
@@ -663,24 +676,23 @@ const app = {
   },
 
   validateForm() {
-    const mood = elements.moodSelect;
+    const mood = state.selectedMood || elements.moodSelect.value;
     const moodError = document.getElementById('mood-error');
     
     let isValid = true;
     
     // Validate mood
-    if (!mood.value) {
+    if (!mood) {
       if (moodError) {
         moodError.classList.add('show');
         utils.setTextContent(moodError, 'Please select your mood');
       }
-      mood.setAttribute('aria-invalid', 'true');
       isValid = false;
     } else {
       if (moodError) {
         moodError.classList.remove('show');
+        moodError.textContent = '';
       }
-      mood.setAttribute('aria-invalid', 'false');
     }
     
     return isValid;
@@ -792,6 +804,9 @@ const app = {
   },
 
   renderUI() {
+    // Debug log to check rendering
+    console.log('Rendering UI with entries:', state.journalEntries.length);
+    
     // Update filter dropdowns to reflect current state
     if (elements.habitFilter) elements.habitFilter.value = state.filters.habitStatus;
     if (elements.moodFilter) elements.moodFilter.value = state.filters.mood;
